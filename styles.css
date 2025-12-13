@@ -1,0 +1,183 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+:root {
+    --primary-color: #00ff9d;
+    --secondary-color: #008f58;
+    --bg-color: #050a08;
+    --panel-bg: rgba(0, 20, 10, 0.85);
+    --alert-color: #ff3333;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: var(--bg-color);
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--primary-color);
+}
+
+#interface-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background-image:
+        linear-gradient(rgba(0, 255, 157, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 157, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+}
+
+#videoElement {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.3;
+    /* Low opacity to focus on the data overlay */
+    transform: scaleX(-1);
+    /* Mirror effect */
+    filter: grayscale(100%) contrast(1.2);
+    z-index: 0;
+}
+
+#analysisCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+#hud-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+    /* Allow clicks to pass through to canvas if needed */
+}
+
+#data-panel {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 280px;
+    background: var(--panel-bg);
+    border: 1px solid var(--primary-color);
+    padding: 20px;
+    pointer-events: auto;
+    box-shadow: 0 0 15px rgba(0, 255, 157, 0.1);
+}
+
+h2 {
+    margin: 0 0 15px 0;
+    font-size: 18px;
+    letter-spacing: 2px;
+    border-bottom: 1px solid var(--secondary-color);
+    padding-bottom: 5px;
+}
+
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.label {
+    opacity: 0.7;
+}
+
+.value {
+    font-weight: bold;
+}
+
+.separator {
+    height: 1px;
+    background: var(--secondary-color);
+    margin: 10px 0;
+    opacity: 0.5;
+}
+
+button {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    padding: 10px;
+    margin-top: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+}
+
+button:hover {
+    background: var(--primary-color);
+    color: #000;
+}
+
+button:disabled {
+    border-color: #555;
+    color: #555;
+    cursor: not-allowed;
+}
+
+#calibration-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto;
+    backdrop-filter: blur(5px);
+}
+
+.calib-box {
+    border: 2px solid var(--primary-color);
+    padding: 40px;
+    text-align: center;
+    background: #000;
+    max-width: 400px;
+    box-shadow: 0 0 30px rgba(0, 255, 157, 0.2);
+}
+
+.loader {
+    width: 100%;
+    height: 2px;
+    background: #333;
+    margin: 20px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.loader::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    background: var(--primary-color);
+    animation: scan 2s infinite linear;
+}
+
+@keyframes scan {
+    0% {
+        left: -50%;
+    }
+
+    100% {
+        left: 100%;
+    }
+}
