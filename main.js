@@ -2,7 +2,6 @@ class TrackerExperiment {
     constructor() {
         // Scene Setup
         this.scene = new THREE.Scene();
-        // Orthographic camera for 2D UI-like overlay feel
         this.camera = new THREE.OrthographicCamera(
             -window.innerWidth / 2, window.innerWidth / 2,
             window.innerHeight / 2, -window.innerHeight / 2,
@@ -21,11 +20,12 @@ class TrackerExperiment {
         // State
         this.isRunning = false;
         this.faceMesh = null;
-        this.landmarks = null; // Store latest raw data
-        this.faceGeometry = null; // THREE.Points for face wireframe
+        this.landmarks = null;
+        this.faceGeometry = null;
 
-        // Gaze Tracking Data
-        this.calibratedCenter = { x: 0.5, y: 0.5 };
+        // Gaze Tracking State
+        // We track the offset of the iris relative to the eye center
+        this.calibratedOffset = { x: 0, y: 0 };
         this.currentGaze = { x: 0.5, y: 0.5 };
         this.smoothGaze = { x: 0.5, y: 0.5 };
         this.trailPoints = [];
@@ -51,25 +51,32 @@ class TrackerExperiment {
 
     setupSceneObjects() {
         // 1. Face Topology (Points)
-        // MediaPipe FaceMesh has 468 landmarks
         const geometry = new THREE.BufferGeometry();
         const positions = new Float32Array(468 * 3);
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
         const material = new THREE.PointsMaterial({
             color: 0x00ff9d,
-            size: 3,
+            size: 2,
             sizeAttenuation: false,
             transparent: true,
-            opacity: 0.6
+            opacity: 0.4 // Lower opacity to emphasize eyes
         });
 
         this.facePoints = new THREE.Points(geometry, material);
         this.scene.add(this.facePoints);
 
-        // 2. Gaze Trail (Line)
+        // 2. Eye Highlights (New)
+        // We will add specific markers for the irises
+        const irisGeo = new THREE.CircleGeometry(4, 16);
+        const irisMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+        this.leftIrisMesh = new THREE.Mesh(irisGeo, irisMat);
+        this.rightIrisMesh = new THREE.Mesh(irisGeo, irisMat);
+        this.scene.add(this.leftIrisMesh);
+        this.scene.add(this.rightIrisMesh);
+
+        // 3. Gaze Trail (Line)
         const trailGeo = new THREE.BufferGeometry();
-        // Initialize with zeros
         const trailPos = new Float32Array(this.maxTrailLength * 3);
         trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
 
@@ -83,8 +90,8 @@ class TrackerExperiment {
         this.trailLine = new THREE.Line(trailGeo, trailMat);
         this.scene.add(this.trailLine);
 
-        // 3. Gaze Cursor (Ring)
-        const cursorGeo = new THREE.RingGeometry(10, 12, 32);
+        // 4. Gaze Cursor (Ring)
+        const cursorGeo = new THREE.RingGeometry(8, 10, 32);
         const cursorMat = new THREE.MeshBasicMaterial({ color: 0xff3333, side: THREE.DoubleSide });
         this.cursor = new THREE.Mesh(cursorGeo, cursorMat);
         this.scene.add(this.cursor);
@@ -95,9 +102,8 @@ class TrackerExperiment {
         await this.setupMediaPipe();
         this.animate();
 
-        // UI Ready state
         const startBtn = document.getElementById('start-btn');
-        startBtn.textContent = "INITIALIZE TRACKING";
+        startBtn.textContent = "INITIALIZE PUPIL TRACKING";
         startBtn.disabled = false;
         startBtn.addEventListener('click', () => this.startExperiment());
     }
@@ -114,8 +120,7 @@ class TrackerExperiment {
                 video.onloadeddata = () => resolve();
             });
         } catch (err) {
-            console.error("Camera denied", err);
-            alert("Camera access required for experiment.");
+            alert("Camera access required.");
         }
     }
 
@@ -128,7 +133,7 @@ class TrackerExperiment {
 
         this.faceMesh.setOptions({
             maxNumFaces: 1,
-            refineLandmarks: true,
+            refineLandmarks: true, // Crucial for Iris tracking
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5
         });
@@ -144,8 +149,13 @@ class TrackerExperiment {
 
     startExperiment() {
         document.getElementById('calibration-overlay').style.display = 'none';
-        document.getElementById('status-indicator').textContent = "TRACKING_ACTIVE";
-        document.getElementById('status-indicator').style.color = "#00ff9d";
+        document.getElementById('status-indicator').textContent = "PUPIL_TRACKING_ACTIVE";
+        document.getElementById('status-indicator').style.color = "#00ffff";
+
+        // Update labels to reflect new mode
+        document.querySelectorAll('.label')[0].textContent = "IRIS_L_X:";
+        document.querySelectorAll('.label')[1].textContent = "IRIS_R_X:";
+
         this.isRunning = true;
         this.calibrate();
         this.processVideo();
@@ -153,10 +163,13 @@ class TrackerExperiment {
 
     calibrate() {
         if (this.landmarks) {
-            // Set current head position as the "center" / zero point
-            const nose = this.landmarks[1];
-            this.calibratedCenter = { x: nose.x, y: nose.y };
-            this.trailPoints = []; // Clear trail
+            // Calculate current iris offset and set it as "Zero"
+            // This assumes the user is looking at the center of the screen during calibration
+            const offset = this.calculateIrisOffset(this.landmarks);
+            this.calibratedOffset = offset;
+            this.trailPoints = [];
+
+            console.log("Calibrated Center Offset:", this.calibratedOffset);
         }
     }
 
@@ -169,65 +182,106 @@ class TrackerExperiment {
     }
 
     updateTopology(landmarks) {
-        // Update the THREE.Points mesh to match face landmarks
         const positions = this.facePoints.geometry.attributes.position.array;
-
         const width = window.innerWidth;
         const height = window.innerHeight;
 
         for (let i = 0; i < landmarks.length; i++) {
-            // Map 0-1 coords to screen space centered at 0,0
-            // x is mirrored (1 - x)
             const x = (1 - landmarks[i].x) * width - width / 2;
-            const y = -(landmarks[i].y * height - height / 2); // Invert Y
-            const z = -landmarks[i].z * width; // Approximate depth scaling
+            const y = -(landmarks[i].y * height - height / 2);
+            const z = -landmarks[i].z * width;
 
             positions[i * 3] = x;
             positions[i * 3 + 1] = y;
             positions[i * 3 + 2] = z;
         }
-
         this.facePoints.geometry.attributes.position.needsUpdate = true;
+
+        // Update Iris Markers specifically
+        // 468 is Right Iris Center (Image Left), 473 is Left Iris Center (Image Right)
+        const rightIris = landmarks[468];
+        const leftIris = landmarks[473];
+
+        this.leftIrisMesh.position.set(
+            (1 - leftIris.x) * width - width / 2,
+            -(leftIris.y * height - height / 2),
+            -leftIris.z * width
+        );
+
+        this.rightIrisMesh.position.set(
+            (1 - rightIris.x) * width - width / 2,
+            -(rightIris.y * height - height / 2),
+            -rightIris.z * width
+        );
+    }
+
+    // Helper: Calculate how far the irises are from the center of the eye sockets
+    calculateIrisOffset(landmarks) {
+        // Right Eye (User's Right) Indices
+        // Inner: 33, Outer: 133, Iris: 468
+        const rInner = landmarks[33];
+        const rOuter = landmarks[133];
+        const rIris = landmarks[468];
+
+        // Left Eye (User's Left) Indices
+        // Inner: 362, Outer: 263, Iris: 473
+        const lInner = landmarks[362];
+        const lOuter = landmarks[263];
+        const lIris = landmarks[473];
+
+        // Calculate Eye Centers (Socket Centers)
+        const rCenter = {
+            x: (rInner.x + rOuter.x) / 2,
+            y: (rInner.y + rOuter.y) / 2
+        };
+        const lCenter = {
+            x: (lInner.x + lOuter.x) / 2,
+            y: (lInner.y + lOuter.y) / 2
+        };
+
+        // Calculate Iris Vector (Vector from Socket Center to Iris Center)
+        // We average both eyes for stability
+        const rVec = { x: rIris.x - rCenter.x, y: rIris.y - rCenter.y };
+        const lVec = { x: lIris.x - lCenter.x, y: lIris.y - lCenter.y };
+
+        return {
+            x: (rVec.x + lVec.x) / 2,
+            y: (rVec.y + lVec.y) / 2
+        };
     }
 
     updateMetrics(landmarks) {
-        // 1. Calculate Head Orientation (Approximate)
-        // Nose tip: 1, Left Ear: 234, Right Ear: 454
-        const nose = landmarks[1];
-        const leftEar = landmarks[234];
-        const rightEar = landmarks[454];
+        // 1. Get current Raw Iris Vector
+        const currentOffset = this.calculateIrisOffset(landmarks);
 
-        // Yaw: Difference in Z between ears (simplified) or X relative to nose
-        // A simple Yaw approx: deviation of nose X from midpoint of ears X
-        const earMidX = (leftEar.x + rightEar.x) / 2;
-        const yawRaw = (nose.x - earMidX) * 100; // Scaling factor
+        // 2. Display Raw Metrics (Iris Shift)
+        document.getElementById('val-yaw').textContent = (currentOffset.x * 1000).toFixed(2); // Reusing labels
+        document.getElementById('val-pitch').textContent = (currentOffset.y * 1000).toFixed(2);
 
-        // Pitch: Nose Y relative to ear Y
-        const earMidY = (leftEar.y + rightEar.y) / 2;
-        const pitchRaw = (nose.y - earMidY) * 100;
+        // 3. Calculate Gaze Delta
+        // How much has the eye moved relative to calibration?
+        // Sensitivity must be HIGH because eyes move very small distances (pixels)
+        const SENSITIVITY_X = 60.0;
+        const SENSITIVITY_Y = 80.0; // Vertical eye movement is subtler
 
-        // Update UI
-        document.getElementById('val-yaw').textContent = yawRaw.toFixed(2) + "°";
-        document.getElementById('val-pitch').textContent = pitchRaw.toFixed(2) + "°";
+        const deltaX = (currentOffset.x - this.calibratedOffset.x) * SENSITIVITY_X;
+        const deltaY = (currentOffset.y - this.calibratedOffset.y) * SENSITIVITY_Y;
 
-        // 2. Calculate Gaze/Pointer
-        // Logic: Movement of nose relative to calibrated center
-        // Amplified to cover screen
-        const sensitivity = 2.5;
-        const rawX = (nose.x - this.calibratedCenter.x) * sensitivity;
-        const rawY = (nose.y - this.calibratedCenter.y) * sensitivity;
+        // 4. Smoothing
+        // Eyes are jittery; we need stronger smoothing than head tracking
+        // Lerp factor 0.05 = very smooth (slow), 0.2 = twitchy (fast)
+        const lerpFactor = 0.08;
 
-        // Smoothing
-        this.smoothGaze.x += (rawX - this.smoothGaze.x) * 0.1;
-        this.smoothGaze.y += (rawY - this.smoothGaze.y) * 0.1;
+        this.smoothGaze.x += (deltaX - this.smoothGaze.x) * lerpFactor;
+        this.smoothGaze.y += (deltaY - this.smoothGaze.y) * lerpFactor;
 
         // Update UI Coordinates
         document.getElementById('val-x').textContent = (-this.smoothGaze.x).toFixed(3);
         document.getElementById('val-y').textContent = this.smoothGaze.y.toFixed(3);
 
         // Update 3D Cursor
-        const cursorX = -this.smoothGaze.x * window.innerWidth; // Mirror
-        const cursorY = -this.smoothGaze.y * window.innerHeight;
+        const cursorX = -this.smoothGaze.x * window.innerWidth; // Mirror X
+        const cursorY = -this.smoothGaze.y * window.innerHeight; // Invert Y
 
         this.cursor.position.set(cursorX, cursorY, 10);
 
@@ -272,7 +326,7 @@ class TrackerExperiment {
         const now = performance.now();
         if (this.lastFrameTime) {
             const fps = Math.round(1000 / (now - this.lastFrameTime));
-            if (this.frameCount % 10 === 0) { // Update FPS only occasionally
+            if (this.frameCount % 10 === 0) {
                 document.getElementById('val-fps').textContent = fps;
             }
         }
