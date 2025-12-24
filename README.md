@@ -1,65 +1,45 @@
-# Laser Kitten Defense - Project Overview
+### Cranial & Oculomotor Tracking
 
-Web game that uses face tracking to control eye lasers for defending kittens from ghosts.
+![cranial & oculomotor tracking screenshot](./cranial_oculomotor_tracking.png)
 
-[Video](https://youtu.be/nviYIfiYd24) | [Live Demo](https://www.funwithcomputervision.com/laser-kitten/)
+A `threejs` / `WebGL` / `MediaPipe`-powered analytical interface designed for real-time tracking of ocular movement and cranial orientation. This project extracts precise biometric data to create a high-fidelity "Heads-Up Display" (HUD) for gaze estimation and head-pose analysis.
 
-<img src="assets/laser-kitten.png">
 
-## Tech Stack
+#### Features & Interactions
 
-- **Three.js** - 3D graphics and rendering
-- **MediaPipe Face Mesh** - Real-time face landmark detection
-- **Tone.js** - Audio synthesis for sound effects
-- **WebGL Shaders** - Custom laser and particle effects
-- **WebRTC** - Camera access via getUserMedia
+- **Oculomotor Tracking:** TSpecifically targets the iris and pupil to monitor movement within the eye socket for gaze estimation.
+- **Cranial Analysis:** Calculates head Yaw and Pitch by analyzing the spatial positions of the nose relative to the ears.
+- **Calibration:** Features a reset mechanism to establish a "center" baseline for mapping iris movement to screen coordinates.
+- **Visual HUD:** A data panel displaying raw iris offsets, landmark status, and real-time FPS.
+- **Gaze Trail:** A dynamic path trace that visualizes the movement history of the user's gaze over time.
 
-## Core Components
 
-### 1. Face Tracking Setup
-- Uses MediaPipe to detect 468 facial landmarks
-- Tracks left and right eye positions in real-time
-- Calibrates head center position on game start
-- Falls back to mouse control if face tracking fails
 
-### 2. Game Mechanics
-- **Kittens**: 3 sprites positioned on player's forehead that move with face
-- **Ghosts**: Enemy sprites that spawn from screen edges and target kittens
-- **Lasers**: Dual eye beams fired automatically toward gaze direction
-- **Health System**: Ghosts take multiple hits, kittens die in one hit
+### Setup for Development
 
-### 3. Visual Effects
+Navigate to the project sub-folder in terminal:
+```bash
+cd cranial_oculomotor_tracking
+```
 
-#### Custom Shaders
-- **Laser Beam**: Animated beam with sine wave distortion and pulsing
-- **Laser Tip**: Swirling energy effect at gaze target
-- **Particles**: Explosion effects when enemies are hit
+In the terminal, type below command:
+```bash
+python3 -m http.server
+```
+Use the browser and go to:
+```bash
+http://localhost:8000
+```
+Note: Please clear your browser cache before entering the address.
 
-### 4. Game Flow
-1. **Initialization**: Load sprites, setup face tracking, calibrate camera
-2. **Game Loop**: 
-   - Update face positions
-   - Spawn enemies at increasing difficulty
-   - Auto-fire lasers every 180ms
-   - Check collisions between lasers/enemies and enemies/kittens
-3. **Game Over**: Triggered when all kittens are captured
+### Requirements
 
-### 5. Audio System
-- **Ghost Pop**: Membrane synth for enemy hits
-- **Kitten Alert**: Sawtooth synth sequence for kitten capture
-- All sounds generated procedurally with Tone.js
+- Modern web browser with WebGL support
+- Camera access
 
-### 6. Responsive Design
-- Adapts gaze sensitivity for portrait vs landscape
-- Mobile-optimized enemy speeds and UI scaling
-- Fallback textures generated via Canvas API if sprites fail to load
+### Technologies
 
-## File Structure
-
-- `index.html` - Main HTML structure and meta tags
-- `main.js` - Core game logic and Three.js setup
-- `sound.js` - Tone.js audio synthesis
-- `styles.css` - Retro pixel-art themed styling
-- `assets/` - Sprite images (ghost.png, kitten.png)
-
-The game combines computer vision, 3D graphics, and procedural audio into a cohesive augmented reality experience that runs entirely in the browser.
+- **Three.js** for 3D graphics and orthographic rendering
+- **MediaPipe Face Mesh** for sub-pixel landmark detection (468 points)
+- **WebGL Shaders** for GPU-accelerated graphics and custom data overlays
+- **JavaScript** for real-time biometric telemetry and coordinate mapping
