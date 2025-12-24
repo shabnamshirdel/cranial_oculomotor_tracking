@@ -6,25 +6,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cranial & Oculomotor Tracker</title>
     <link rel="stylesheet" href="styles.css">
-
-    <meta name="title" content="Cranial & Oculomotor Tracker">
-    <meta name="description" content="Real-time facial landmark topology and gaze vector analysis.">
 </head>
 
 <body>
     <div id="interface-container">
         <video id="videoElement" autoplay muted playsinline></video>
-
         <canvas id="analysisCanvas"></canvas>
 
         <div id="hud-layer">
             <div id="data-panel">
-                <h2>// METRICS_LOG</h2>
                 <div class="metric-row">
                     <span class="label">STATUS:</span>
                     <span id="status-indicator" class="value active">INITIALIZING...</span>
                 </div>
                 <div class="separator"></div>
+
+                <div class="metric-row">
+                    <span class="label">IRIS_L_X:</span>
+                    <span id="val-iris-l" class="value">0.00</span>
+                </div>
+                <div class="metric-row">
+                    <span class="label">IRIS_R_X:</span>
+                    <span id="val-iris-r" class="value">0.00</span>
+                </div>
+
                 <div class="metric-row">
                     <span class="label">HEAD_YAW:</span>
                     <span id="val-yaw" class="value">0.00°</span>
@@ -33,6 +38,9 @@
                     <span class="label">HEAD_PITCH:</span>
                     <span id="val-pitch" class="value">0.00°</span>
                 </div>
+
+                <div class="separator"></div>
+
                 <div class="metric-row">
                     <span class="label">GAZE_X:</span>
                     <span id="val-x" class="value">0.00</span>
@@ -55,14 +63,6 @@
                 <button id="reset-btn">RESET CALIBRATION</button>
             </div>
 
-            <div id="calibration-overlay">
-                <div class="calib-box">
-                    <h3>SENSOR CALIBRATION</h3>
-                    <p>Align face within frame to initialize topology tracking.</p>
-                    <div class="loader"></div>
-                    <button id="start-btn" disabled>AWAITING VIDEO FEED...</button>
-                </div>
-            </div>
         </div>
     </div>
 

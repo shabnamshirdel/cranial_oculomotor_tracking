@@ -1,6 +1,5 @@
 // sound.js
-// Basic Audio Context initialization for future data sonification
-// Currently muted for scientific observation mode.
+// Currently muted.
 
 console.log("Audio subsystem initialized: Silent Mode");
 
