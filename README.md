@@ -7,7 +7,7 @@ A `threejs` / `WebGL` / `MediaPipe`-powered analytical interface designed for re
 
 #### Features & Interactions
 
-- **Oculomotor Tracking:** TSpecifically targets the iris and pupil to monitor movement within the eye socket for gaze estimation.
+- **Oculomotor Tracking:** Specifically targets the iris and pupil to monitor movement within the eye socket for gaze estimation.
 - **Cranial Analysis:** Calculates head Yaw and Pitch by analyzing the spatial positions of the nose relative to the ears.
 - **Calibration:** Features a reset mechanism to establish a "center" baseline for mapping iris movement to screen coordinates.
 - **Visual HUD:** A data panel displaying raw iris offsets, landmark status, and real-time FPS.
