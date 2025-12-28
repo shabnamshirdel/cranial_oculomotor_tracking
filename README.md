@@ -43,3 +43,6 @@ Note: Please clear your browser cache before entering the address.
 - **MediaPipe Face Mesh** for sub-pixel landmark detection (468 points)
 - **WebGL Shaders** for GPU-accelerated graphics and custom data overlays
 - **JavaScript** for real-time biometric telemetry and coordinate mapping
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE.txt) file for details.
